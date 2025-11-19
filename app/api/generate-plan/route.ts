@@ -5,9 +5,12 @@ import { rateLimit, getClientIp } from "@/lib/utils/rate-limit"
 import { ZodError } from "zod"
 
 // Environment variables with defaults
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4"
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini"
 const PLAN_MAX_TOKENS = parseInt(process.env.OPENAI_PLAN_MAX_TOKENS || "2000", 10)
 const TEMPERATURE = parseFloat(process.env.OPENAI_TEMPERATURE || "0.7")
+
+// Models that support JSON response format
+const JSON_SUPPORTED_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4-turbo-preview', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo-0125']
 
 function getOpenAIClient() {
     if (!process.env.OPENAI_API_KEY) {
@@ -85,7 +88,11 @@ export async function POST(request: NextRequest) {
 - 주간 퀘스트는 4-6개로 구성해주세요`
 
         const openai = getOpenAIClient()
-        const completion = await openai.chat.completions.create({
+
+        // Check if the model supports JSON response format
+        const supportsJsonFormat = JSON_SUPPORTED_MODELS.some(model => OPENAI_MODEL.includes(model))
+
+        const completionParams: OpenAI.Chat.ChatCompletionCreateParams = {
             model: OPENAI_MODEL,
             messages: [
                 { role: "system", content: "당신은 재수생 학습 계획 전문가입니다. JSON 형식으로만 응답합니다." },
@@ -93,8 +100,14 @@ export async function POST(request: NextRequest) {
             ],
             temperature: TEMPERATURE,
             max_tokens: PLAN_MAX_TOKENS,
-            response_format: { type: "json_object" }
-        })
+        }
+
+        // Add response_format only for supported models
+        if (supportsJsonFormat) {
+            completionParams.response_format = { type: "json_object" }
+        }
+
+        const completion = await openai.chat.completions.create(completionParams)
 
         const planText = completion.choices[0]?.message?.content || "{}"
 

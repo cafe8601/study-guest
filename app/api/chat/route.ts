@@ -5,7 +5,7 @@ import { rateLimit, getClientIp } from "@/lib/utils/rate-limit"
 import { ZodError } from "zod"
 
 // Environment variables with defaults
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4"
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini"
 const MAX_TOKENS = parseInt(process.env.OPENAI_MAX_TOKENS || "500", 10)
 const TEMPERATURE = parseFloat(process.env.OPENAI_TEMPERATURE || "0.7")
 
