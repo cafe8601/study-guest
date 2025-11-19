@@ -3,7 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Users, BookOpen, Smile } from "lucide-react"
-import { useApp, CharacterType } from "@/lib/contexts/AppContext"
+import { useApp } from "@/lib/contexts/AppContext"
+import type { CharacterType } from "@/lib/types"
 
 const characters = [
     {

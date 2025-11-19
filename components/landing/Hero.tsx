@@ -1,8 +1,17 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Target, Sparkles, BrainCircuit } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 
 export function Hero() {
+    const scrollToFeatures = () => {
+        const featuresSection = document.getElementById('features')
+        if (featuresSection) {
+            featuresSection.scrollIntoView({ behavior: 'smooth' })
+        }
+    }
+
     return (
         <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-background">
             <div className="container px-4 md:px-6 mx-auto">
@@ -23,7 +32,7 @@ export function Hero() {
                                 지금 시작하기 <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                         </Link>
-                        <Button variant="outline" size="lg">
+                        <Button variant="outline" size="lg" onClick={scrollToFeatures}>
                             더 알아보기
                         </Button>
                     </div>

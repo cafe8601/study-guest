@@ -5,14 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BrainCircuit, CheckCircle2, AlertCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useApp } from "@/lib/contexts/AppContext"
+import type { UserData, StudyPlan } from "@/lib/types"
 
 interface PlanGenerationProps {
-    userData: {
-        targetUniversity: string
-        targetScore: string
-        currentScore: string
-        weakSubject: string
-    }
+    userData: UserData
 }
 
 export function PlanGeneration({ userData }: PlanGenerationProps) {
@@ -54,19 +50,23 @@ export function PlanGeneration({ userData }: PlanGenerationProps) {
                     throw new Error('계획 생성에 실패했습니다.')
                 }
 
-                const data = await response.json()
+                const data = await response.json() as { plan: StudyPlan; error?: string }
+
+                if (data.error) {
+                    throw new Error(data.error)
+                }
 
                 // 사용자 데이터 저장
                 setUserData(userData)
 
                 // 퀘스트 데이터 저장
-                if (data.plan && data.plan.weeklyQuests) {
-                    const quests = data.plan.weeklyQuests.map((q: any, idx: number) => ({
+                if (data.plan?.weeklyQuests) {
+                    const quests = data.plan.weeklyQuests.map((q, idx) => ({
                         id: idx + 1,
                         title: q.title,
                         time: q.time,
                         completed: false,
-                        priority: q.priority || 'medium'
+                        priority: q.priority || 'medium' as const,
                     }))
                     setQuests(quests)
                 }
@@ -76,9 +76,10 @@ export function PlanGeneration({ userData }: PlanGenerationProps) {
 
                 // 대시보드로 이동
                 setTimeout(() => router.push("/dashboard"), 1500)
-            } catch (err: any) {
+            } catch (err) {
                 console.error('Plan generation error:', err)
-                setError(err.message || '계획 생성 중 오류가 발생했습니다.')
+                const errorMessage = err instanceof Error ? err.message : '계획 생성 중 오류가 발생했습니다.'
+                setError(errorMessage)
                 clearInterval(interval)
             }
         }
