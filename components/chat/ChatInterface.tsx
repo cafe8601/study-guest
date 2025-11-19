@@ -5,15 +5,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Send, Loader2 } from "lucide-react"
 import { useApp } from "@/lib/contexts/AppContext"
+import type { ChatMessage } from "@/lib/types"
 
-interface Message {
+interface Message extends ChatMessage {
     id: number
-    role: 'user' | 'assistant'
-    content: string
 }
+
+// Maximum number of recent messages to send to API (to control token usage)
+const MAX_CONTEXT_MESSAGES = 10
 
 export function ChatInterface() {
     const { character } = useApp()
@@ -33,32 +35,40 @@ export function ChatInterface() {
     const handleSend = async () => {
         if (!input.trim() || isLoading) return
 
-        const userMessage: Message = { id: Date.now(), role: 'user', content: input }
+        const trimmedInput = input.trim()
+        const userMessage: Message = { id: Date.now(), role: 'user', content: trimmedInput }
         setMessages(prev => [...prev, userMessage])
         setInput("")
         setIsLoading(true)
 
         try {
-            const apiMessages = messages.map(m => ({
+            // Only send the most recent N messages to control API costs
+            const recentMessages = messages.slice(-MAX_CONTEXT_MESSAGES).map(m => ({
                 role: m.role,
                 content: m.content
             }))
-            apiMessages.push({ role: 'user', content: input })
+            recentMessages.push({ role: 'user' as const, content: trimmedInput })
 
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    messages: apiMessages,
+                    messages: recentMessages,
                     character
                 })
             })
 
             if (!response.ok) {
-                throw new Error('API 요청 실패')
+                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+                throw new Error(errorData.error || `API 요청 실패 (${response.status})`)
             }
 
-            const data = await response.json()
+            const data = await response.json() as { message: string; error?: string }
+
+            if (data.error) {
+                throw new Error(data.error)
+            }
+
             const aiMessage: Message = {
                 id: Date.now() + 1,
                 role: 'assistant',
@@ -70,7 +80,7 @@ export function ChatInterface() {
             const errorMessage: Message = {
                 id: Date.now() + 1,
                 role: 'assistant',
-                content: '죄송합니다. 일시적인 오류가 발생했습니다. 다시 시도해주세요.'
+                content: error instanceof Error ? error.message : '죄송합니다. 일시적인 오류가 발생했습니다. 다시 시도해주세요.'
             }
             setMessages(prev => [...prev, errorMessage])
         } finally {
